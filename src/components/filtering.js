@@ -1,6 +1,13 @@
 import { createComparison, defaultRules } from "../lib/compare.js";
 
-const compare = createComparison(defaultRules);
+let filteringRules = [
+  ...defaultRules,
+  "caseInsensitiveStringIncludes",
+  "searchMultipleFields",
+  "numericTolerance",
+];
+
+const compare = createComparison(filteringRules);
 
 export function initFiltering(elements, indexes) {
   Object.keys(indexes).forEach((elementName) => {
@@ -37,6 +44,19 @@ export function initFiltering(elements, indexes) {
       return [...data];
     }
 
-    return data.filter((row) => compare(row, state));
+    const processedState = { ...state };
+
+    if (processedState.totalFrom || processedState.totalTo) {
+      const from = processedState.totalFrom
+        ? parseFloat(processedState.totalFrom)
+        : undefined;
+      const to = processedState.totalTo
+        ? parseFloat(processedState.totalTo)
+        : undefined;
+
+      processedState.total = [from, to];
+    }
+
+    return data.filter((row) => compare(row, processedState));
   };
 }
