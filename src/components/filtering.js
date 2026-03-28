@@ -7,6 +7,7 @@ export function initFiltering(elements, indexes) {
     elements[elementName].append(
       ...Object.values(indexes[elementName]).map((name) => {
         const option = document.createElement("option");
+        option.value = name;
         option.textContent = name;
         return option;
       }),
@@ -26,6 +27,14 @@ export function initFiltering(elements, indexes) {
           state[fieldName] = "";
         }
       }
+    }
+
+    if (
+      !state ||
+      Object.keys(state).length === 0 ||
+      Object.values(state).every((value) => !value)
+    ) {
+      return [...data];
     }
 
     return data.filter((row) => compare(row, state));
