@@ -1,62 +1,54 @@
-import { createComparison, defaultRules } from "../lib/compare.js";
+export function initFiltering(elements) {
+  const updateIndexes = (elements, indexes) => {
+    Object.keys(indexes).forEach((elementName) => {
+      elements[elementName].append(
+        ...Object.values(indexes[elementName]).map((name) => {
+          const option = document.createElement("option");
+          option.value = name;
+          option.textContent = name;
+          return option;
+        }),
+      );
+    });
+  };
 
-let filteringRules = [
-  ...defaultRules,
-  "caseInsensitiveStringIncludes",
-  "searchMultipleFields",
-  "numericTolerance",
-];
+  const applyFiltering = (query, state, action) => {
+    if (action && action.getAttribute("name") === "clear") {
+      const fieldName = action.getAttribute("data-field");
+      const wrapper = action.closest(".filter-wrapper");
 
-const compare = createComparison(filteringRules);
-
-export function initFiltering(elements, indexes) {
-  Object.keys(indexes).forEach((elementName) => {
-    elements[elementName].append(
-      ...Object.values(indexes[elementName]).map((name) => {
-        const option = document.createElement("option");
-        option.value = name;
-        option.textContent = name;
-        return option;
-      }),
-    );
-  });
-
-  return (data, state, action) => {
-    if (action?.type === "clear") {
-      const button = action.submitter;
-      const fieldName = button.dataset.field;
-      const parent = button.parentElement;
-      const input = parent.querySelector("input, select");
-
-      if (input) {
-        input.value = "";
-        if (fieldName && state[fieldName] !== undefined) {
-          state[fieldName] = "";
+      if (wrapper) {
+        const input = wrapper.querySelector("input");
+        if (input) {
+          input.value = "";
+          if (fieldName === "date") {
+            state.searchByDate = "";
+          } else if (fieldName === "customer") {
+            state.searchByCustomer = "";
+          }
         }
       }
     }
 
-    if (
-      !state ||
-      Object.keys(state).length === 0 ||
-      Object.values(state).every((value) => !value)
-    ) {
-      return [...data];
-    }
+    const filter = {};
+    Object.keys(elements).forEach((key) => {
+      if (elements[key]) {
+        if (
+          ["INPUT", "SELECT"].includes(elements[key].tagName) &&
+          elements[key].value
+        ) {
+          filter[`filter[${elements[key].name}]`] = elements[key].value;
+        }
+      }
+    });
 
-    const processedState = { ...state };
+    return Object.keys(filter).length
+      ? Object.assign({}, query, filter)
+      : query;
+  };
 
-    if (processedState.totalFrom || processedState.totalTo) {
-      const from = processedState.totalFrom
-        ? parseFloat(processedState.totalFrom)
-        : undefined;
-      const to = processedState.totalTo
-        ? parseFloat(processedState.totalTo)
-        : undefined;
-
-      processedState.total = [from, to];
-    }
-
-    return data.filter((row) => compare(row, processedState));
+  return {
+    updateIndexes,
+    applyFiltering,
   };
 }
