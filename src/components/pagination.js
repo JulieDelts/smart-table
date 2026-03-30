@@ -6,12 +6,14 @@ export const initPagination = (
 ) => {
   const pageTemplate = pages.firstElementChild.cloneNode(true);
   pages.firstElementChild.remove();
-  return (data, state, action) => {
-    const rowsPerPage = state.rowsPerPage;
-    const pageCount = Math.ceil(data.length / rowsPerPage);
+
+  let pageCount;
+
+  const applyPagination = (query, state, action) => {
+    const limit = state.rowsPerPage;
     let page = state.page;
 
-    if (action)
+    if (action) {
       switch (action.name) {
         case "prev":
           page = Math.max(1, page - 1);
@@ -26,8 +28,19 @@ export const initPagination = (
           page = pageCount;
           break;
       }
+    }
+
+    return Object.assign({}, query, {
+      limit,
+      page,
+    });
+  };
+
+  const updatePagination = (total, { page, limit }) => {
+    pageCount = Math.ceil(total / limit);
 
     const visiblePages = getPages(page, pageCount, 5);
+
     pages.replaceChildren(
       ...visiblePages.map((pageNumber) => {
         const el = pageTemplate.cloneNode(true);
@@ -35,10 +48,16 @@ export const initPagination = (
       }),
     );
 
-    fromRow.textContent = (page - 1) * rowsPerPage + 1;
-    toRow.textContent = Math.min(page * rowsPerPage, data.length);
-    totalRows.textContent = data.length;
-    const skip = (page - 1) * rowsPerPage;
-    return data.slice(skip, skip + rowsPerPage);
+    const from = (page - 1) * limit + 1;
+    const to = Math.min(page * limit, total);
+
+    fromRow.textContent = from;
+    toRow.textContent = to;
+    totalRows.textContent = total;
+  };
+
+  return {
+    updatePagination,
+    applyPagination,
   };
 };
